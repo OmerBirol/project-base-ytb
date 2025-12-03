@@ -1,27 +1,24 @@
-const mongoose=require("mongoose");
+// api/db/models/Roles.js
 
-const schema = mongoose.Schema({
-    role_name:{type:String,required:true},
-    is_active:{type:Boolean,default:true},
+const mongoose = require("mongoose");
+
+const schema = new mongoose.Schema(
+  {
+    role_name: { type: String, required: true, unique: true },
+    is_active: { type: Boolean, default: true },
     created_by: {
-        type: mongoose.SchemaType.ObjectId,
-        required:true
-
-    }
-
-},{
-    versionKey:false,
+      type: mongoose.Schema.Types.ObjectId,
+    },
+  },
+  {
+    versionKey: false,
     timestamps: {
-        createdAt: "created_at",
-        updatedAt: "updated_at"
-    }
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+  }
+);
 
+// BURADA EKSTRA class/loadClass YOK!
 
-});
-
-class roles extends mongoose.Model(){
-
-}
-
-schema.loadClass(roles);
-module.exports=mongoose.model("roles",schema);
+module.exports = mongoose.model("Roles", schema, "roles");
