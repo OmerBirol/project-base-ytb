@@ -9,7 +9,8 @@ const Enum=require('../config/Enum');
 const CustomError = require("../lib/Error");
 const usersroles = require("../db/models/usersroles");
 const Roles = require("../db/models/Roles");
-
+const jwt=require("jwt-simple");
+const config=require("../config");
 /* GET users listing. */
 router.get('/', async (req, res) => {
   try {
@@ -87,7 +88,7 @@ router.post("/update", async (req, res) => {
         updates.password=bcrypt.hashSync(body.password,bcrypt.genSaltSync(8),null);
 
       }
-      if(typeof body.is_active) updates.is_active=body.is_active;
+      if(typeof body.is_active==="boolean") updates.is_active=body.is_active;
       if(body.first_name) updates.first_name=body.first_name;
       if(body.last_name) updates.last_name=body.last_name;
       if(body.phone_number) updates.phone_number=body.phone_number;
@@ -98,12 +99,12 @@ router.post("/update", async (req, res) => {
          let removedRoles = userRoles.filter(x => !body.roles.includes(x.role_id));
          let newRoles = body.roles.filter(x => !userRoles.map(r => r.role_id).includes(x));
         if (removedRoles.length > 0) {
-         await UserRoles.deleteMany({ _id: { $in: removedRoles.map(x => x._id.toString()) } });
+         await usersroles.deleteMany({ _id: { $in: removedRoles.map(x => x._id.toString()) } });
       }
 
        if (newRoles.length > 0) {
          for (let i = 0; i < newRoles.length; i++) {
-           let userRole = new UserRoles({
+           let userRole = new usersroles({
              role_id: newRoles[i],
              user_id: body._id
            });
@@ -135,7 +136,7 @@ try {
   if(!body._id) throw new CustomError(Enum.HTTP_CODES.BAD_REQUEST,"Validation Error!","_id fields must be filled");
 
   await Users.deleteOne({_id:body._id});
-  await UserRoles.deleteMany({ user_id: body._id });
+  await usersroles.deleteMany({ user_id: body._id });
 
   res.json(Response.successResponse({success:true}));
 } catch (err) 
@@ -203,6 +204,37 @@ router.post("/register", async (req, res) => {
       res.status(errorResponse.code).json(errorResponse);
 
     }
-});
+})
+router.post("/auth",async(req,res)=>{
+  try {
+    let {email,password}=req.body;
+    Users.validateFieldsBeforeAuth(email,password);
+    let user=await Users.findOne({email});
+
+     if (!user) throw new CustomError(Enum.HTTP_CODES.UNAUTHORIZED,"Validation error","Email or password wrong");
+     if(user.validPassword(password)) throw new CustomError(Enum.HTTP_CODES.UNAUTHORIZED,"Validation error","Email or password wrong");
+     
+     let payload={
+      id:user._id,
+      exp:parseInt(Date.now() / 1000) + config.JWT.EXPIRE_TIME
+     }
+     let token =jwt.encode(payload,config.JWT.SECRET);
+
+      let userData = {
+      _id: user._id,
+      first_name: user.first_name,
+      last_name: user.last_name
+    }
+
+     res.json(Response.successResponse({ token, user: userData }));
+
+
+  } catch (err) {
+      let errorResponse=Response.errorResponse(err);
+      res.status(errorResponse.code).json(errorResponse);
+    
+  }
+})
+
 
 module.exports = router;
