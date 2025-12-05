@@ -1,5 +1,5 @@
 // api/db/models/Users.js
-
+const {DEFAULT_LANG}=require("../../config");
 const mongoose = require("mongoose");
 const is = require("is_js"); // email kontrolü için
 const { PASS_LENGTH, HTTP_CODES } = require("../../config/Enum"); // kendi path'ine göre düzelt
@@ -13,6 +13,7 @@ const schema = new mongoose.Schema(
     first_name:   String,
     last_name:    String,
     phone_number: String,
+    language:{type:String,default:DEFAULT_LANG}
   },
   {
     timestamps: {
